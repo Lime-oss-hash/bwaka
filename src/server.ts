@@ -3,7 +3,7 @@ import env from "./util/validateEnv";
 import mongoose from "mongoose";
 const  emailScheduler = require("./Schedule/emailScheduler") ;
 
-const port = env.PORT || 5000;
+const port = env.PORT || 3000;
 
 // 初始化并启动定时任务
 emailScheduler.start();
