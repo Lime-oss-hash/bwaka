@@ -6,6 +6,7 @@ import nodemailer from "nodemailer";
 import RegisterModel from "../models/register";
 import bcrypt from "bcrypt";
 
+// Nodemailer configuration based on environment variables
 const config = {
     host: env.SMTP_SERVER_ADDRESS,
     port: env.SMTP_PORT,
@@ -18,6 +19,7 @@ const config = {
 
 const transporter = nodemailer.createTransport(config);
 
+// Handler to get all register forms
 export const getRegisters: RequestHandler = async (req, res, next) => {
     try {
         const registers = await RegisterModel.find().exec();
@@ -27,6 +29,7 @@ export const getRegisters: RequestHandler = async (req, res, next) => {
     }
 };
 
+// Handler to get a specific register form by ID
 export const getRegister: RequestHandler = async (req, res, next) => {
     const registerId = req.params.registerId;
 
@@ -47,6 +50,7 @@ export const getRegister: RequestHandler = async (req, res, next) => {
     }
 };
 
+// Interface for the request body of creating a new register form
 interface CreateRegisterBody {
     username?: string,
     password?: string,
@@ -69,55 +73,30 @@ interface CreateRegisterBody {
     emergencyRelationship?: string,
 }
 
+// Handler to create a new register form
 export const createRegister: RequestHandler<unknown, unknown, CreateRegisterBody, unknown> = async (req, res, next) => {
-    const username = req.body.username;
-    const passwordRaw = req.body.password;
-    const firstName = req.body.firstName;
-    const lastName = req.body.lastName;
-    const dob = req.body.dob;
-    const email = req.body.email;
-    const address = req.body.address;
-    const town = req.body.town;
-    const postcode = req.body.postcode;
-    const phoneNumber = req.body.phoneNumber;
-    const altPhoneNumber = req.body.altPhoneNumber;
-    const gender = req.body.gender;
-    const ethnicity = req.body.ethnicity;
-    const disability = req.body.disability
-    const disabilityDetails = req.body.disabilityDetails
-    const assistance = req.body.assistance
-    const emergencyName = req.body.emergencyName
-    const emergencyPhone = req.body.emergencyPhone
-    const emergencyRelationship = req.body.emergencyRelationship
+    const {
+        username, password, firstName, lastName, dob, email, address, town, postcode,
+        phoneNumber, altPhoneNumber, gender, ethnicity, disability, disabilityDetails,
+        assistance, emergencyName, emergencyPhone, emergencyRelationship
+    } = req.body;
 
     try {
-        if (!username || !passwordRaw || !firstName || !lastName || !dob || !email || !address || !town || !postcode || !phoneNumber || !gender || !ethnicity
-            || !disability || !assistance || !emergencyName || !emergencyPhone || !emergencyRelationship) {
-            throw createHttpError(400, "Register form needs to be filled by these information")
+        // Validate required fields for register form creation
+        if (!username || !password || !firstName || !lastName || !dob || !email || !address || !town ||
+            !postcode || !phoneNumber || !gender || !ethnicity || !disability || !assistance ||
+            !emergencyName || !emergencyPhone || !emergencyRelationship) {
+            throw createHttpError(400, "Register form must include all required information");
         }
 
-        const passwordHashed = await bcrypt.hash(passwordRaw, 10);
+        // Hash the password before saving to database
+        const passwordHashed = await bcrypt.hash(password, 10);
 
+        // Create new register form entry
         const newRegister = await RegisterModel.create({
-            username: username,
-            password: passwordRaw,
-            firstName: firstName,
-            lastName: lastName,
-            dob: dob,
-            email: email,
-            address: address,
-            town: town,
-            postcode: postcode,
-            phoneNumber: phoneNumber,
-            altPhoneNumber: altPhoneNumber,
-            gender: gender,
-            ethnicity: ethnicity,
-            disability: disability,
-            disabilityDetails: disabilityDetails,
-            assistance: assistance,
-            emergencyName: emergencyName,
-            emergencyPhone: emergencyPhone,
-            emergencyRelationship: emergencyRelationship,
+            username, password: passwordHashed, firstName, lastName, dob, email, address, town,
+            postcode, phoneNumber, altPhoneNumber, gender, ethnicity, disability, disabilityDetails,
+            assistance, emergencyName, emergencyPhone, emergencyRelationship,
         });
 
         res.status(201).json(newRegister);
@@ -126,6 +105,7 @@ export const createRegister: RequestHandler<unknown, unknown, CreateRegisterBody
     }
 };
 
+// Handler to delete a register form with sending a denial email
 export const deleteRegisterWithEmail: RequestHandler = async (req, res, next) => {
     const registerId = req.params.registerId;
 
@@ -140,11 +120,12 @@ export const deleteRegisterWithEmail: RequestHandler = async (req, res, next) =>
             throw createHttpError(404, "Register form not found");
         }
 
+        // Send denial email to the applicant
         const data = await transporter.sendMail({
-            "from": "miskan22@student.wintec.ac.nz",
-            "to": "miskan22@student.wintec.ac.nz",
-            "subject": "Your Registration",
-            "html": `<p>Dear ${register.firstName} ${register.lastName},<p>
+            from: "xinbai24@student.wintec.ac.nz",
+            to: register.email,
+            subject: "Your Registration",
+            html: `<p>Dear ${register.firstName} ${register.lastName},</p>
             <p>We are sorry to inform you that your registration application has been denied.</p>
             <p>We have found that you do not meet our requirements to receive our services.</p>
             <p>If you wish to speak further on this, you can contact us via our website at wakaeasterbay.org.nz</p>
@@ -153,11 +134,12 @@ export const deleteRegisterWithEmail: RequestHandler = async (req, res, next) =>
             <p>Project Manager</p>
             <p>Mobile: 027 4077526</p>
             <p>Facebook: wakaeasternbay</p>
-            <p>https://wakaeasternbay.org.nz</p>`
+            <p>https://wakaeasternbay.org.nz</p>`,
         });
 
         console.log("Message sent: %s", data.response);
 
+        // Delete the register form from database
         await register.deleteOne();
 
         res.sendStatus(204);
@@ -166,12 +148,13 @@ export const deleteRegisterWithEmail: RequestHandler = async (req, res, next) =>
     }
 };
 
+// Handler to delete a register form without sending an email
 export const deleteRegisterWithoutEmail: RequestHandler = async (req, res, next) => {
     const registerId = req.params.registerId;
 
     try {
         if (!mongoose.isValidObjectId(registerId)) {
-            throw createHttpError(400, "Invalid register Id");
+            throw createHttpError(400, "Invalid register id");
         }
 
         const register = await RegisterModel.findById(registerId).exec();
@@ -180,6 +163,7 @@ export const deleteRegisterWithoutEmail: RequestHandler = async (req, res, next)
             throw createHttpError(404, "Register form not found");
         }
 
+        // Delete the register form from database without sending email
         await register.deleteOne();
 
         res.sendStatus(204);
