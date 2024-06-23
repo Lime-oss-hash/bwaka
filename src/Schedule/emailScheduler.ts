@@ -3,6 +3,8 @@ import nodemailer from "nodemailer";
 import BookingModel from "../models/booking";
 
 const schedule = require('node-schedule');
+
+// SMTP configuration for nodemailer
 const config = {
   host: env.SMTP_SERVER_ADDRESS,
   port: env.SMTP_PORT,
@@ -13,23 +15,28 @@ const config = {
   },
 };
 
+// Create a nodemailer transporter with the configured SMTP settings
 const transporter = nodemailer.createTransport(config);
 
+// Function to send reminder emails to bookings scheduled within 24 hours
 async function sendEmails() {
   try {
     console.log('Start to send Email');
 
-    const date = getFormattedDate();
+    const date = getFormattedDate(); // Get today's date in YYYY-MM-DD format
     console.log('Start to send Email');
 
     let searchCriteria: any = {};
     searchCriteria.date = date;
+    // Find bookings scheduled for today
     const bookings = await BookingModel.find(searchCriteria).exec();
+
+    // Iterate through each booking and send a reminder email
     for (const booking of bookings) {
       const mailOptions = {
         from: env.SMTP_LOGIN,
         to: booking.email,
-        subject: 'Upcoming Booking Time', // 邮件主题
+        subject: 'Upcoming Booking Time', // Email title
         text: 'This is a test email sent using book.',
         html: `
           <h2>Booking Reminder</h2>
@@ -46,35 +53,37 @@ async function sendEmails() {
           <p>Best regards,</p>
           <p>Waka Eastern Bay</p>
         `,
-            };
+      };
+
       try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log('Email sent: ' + info.response);
+        const info = await transporter.sendMail(mailOptions); // Send the email
+        console.log('Email sent: ' + info.response); // Log the response after sending
       } catch (error) {
-        console.error('Error sending email:', error);
+        console.error('Error sending email:', error); // Log any errors that occur during email sending
       }
     }
 
   } catch (err) {
-    console.error('Error occurred:', err);
+    console.error('Error occurred:', err); // Log any errors that occur during the process
   }
 }
 
-
+// Function to get today's date in YYYY-MM-DD format
 function getFormattedDate() {
   const today = new Date();
   const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0'); // getMonth() 返回的月份是从 0 开始的，所以需要加 1
+  const month = String(today.getMonth() + 1).padStart(2, '0'); // getMonth() returns months starting from 0, hence the +1
   const day = String(today.getDate()).padStart(2, '0');
 
   return `${year}-${month}-${day}`;
 }
 
+// Function to schedule sending reminder emails daily at 10:00 AM
 function start() {
-  // '10 0 0 * * *'
+  // Schedule job to run sendEmails function every day at 10:00 AM
   schedule.scheduleJob('10 0 0 * * *', () => {
     sendEmails();
   });
 }
 
-module.exports = {start};
+module.exports = { start }; // Export the start function to be used elsewhere
