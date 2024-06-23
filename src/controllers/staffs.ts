@@ -16,16 +16,17 @@ export const getAuthenticatedStaff: RequestHandler = async (req, res, next) => {
 // Interface for staff sign-up request body
 interface StaffSignUpBody {
     email?: string,
+    password?: string,
     role?: string,
 }
 
 // Sign up a new staff member
 export const StaffSignUp: RequestHandler<unknown, unknown, StaffSignUpBody, unknown> = async (req, res, next) => {
-    const { email } = req.body;
+    const { email, password: passwordRaw } = req.body;
     const role = "staff";
 
     try {
-        if (!email) {
+        if (!email || !passwordRaw) {
             throw createHttpError(400, "Parameters missing");
         }
 
@@ -38,8 +39,12 @@ export const StaffSignUp: RequestHandler<unknown, unknown, StaffSignUpBody, unkn
             throw createHttpError(409, "A staff with this email address already exists. Please log in instead");
         }
 
+        // Store the password in plain text
+        const passwordPlainText = passwordRaw;
+
         const newStaff = await StaffModel.create({
             email,
+            password: passwordPlainText,
             role,
         });
 
@@ -54,20 +59,28 @@ export const StaffSignUp: RequestHandler<unknown, unknown, StaffSignUpBody, unkn
 // Interface for staff login request body
 interface StaffLoginBody {
     email?: string,
+    password?: string,
 }
 
 // Log in a staff member
 export const StaffLogin: RequestHandler<unknown, unknown, StaffLoginBody, unknown> = async (req, res, next) => {
-    const { email } = req.body;
+    const { email, password } = req.body;
     
     try {
-        if (!email) {
+        if (!email || !password) {
             throw createHttpError(400, "Parameters missing");
         }
 
-        const staff = await StaffModel.findOne({ email }).exec();
+        const staff = await StaffModel.findOne({ email }).select("+password +email").exec();
         if (!staff) {
             throw createHttpError(401, "Email address is incorrect");
+        }
+
+        // Compare the provided password with the stored plain text password
+        const passwordMatch = (password === staff.password);
+
+        if (!passwordMatch) {
+            throw createHttpError(401, "Password is incorrect");
         }
 
         req.session.staffId = staff._id;
