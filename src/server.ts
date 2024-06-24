@@ -1,20 +1,18 @@
-import app from "./app"; // Import the Express application instance from app.ts
-import env from "./util/validateEnv"; // Import environment variables from validateEnv.ts
-import mongoose from "mongoose"; // Import mongoose for MongoDB interactions
-const emailScheduler = require("./Schedule/emailScheduler"); // Import the emailScheduler module
+import app from "./app";
+import env from "./util/validateEnv";
+import mongoose from "mongoose";
+const  emailScheduler = require("./Schedule/emailScheduler") ;
 
-const port = env.PORT || 3000; // Get the port from environment variables or default to 3000
+const port = env.PORT || 3000;
 
-// Initialize and start the email scheduling task
+// 初始化并启动定时任务
 emailScheduler.start();
 
-// Connect to MongoDB using the connection string from environment variables
 mongoose.connect(env.MONGO_CONNECTION_STRING)
     .then(() => {
-        console.log("Mongoose connected"); // Log a successful MongoDB connection
-        // Start the Express server and listen on the specified port
+        console.log("Mongoose connected");
         app.listen(port, () => {
-            console.log("Server running on port: " + port); // Log that the server is running
+            console.log("Server running on port: " + port);
         });
     })
-    .catch(console.error); // Catch any errors during MongoDB connection or server startup
+    .catch(console.error);

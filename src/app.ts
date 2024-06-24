@@ -17,68 +17,63 @@ import cookieParser from "cookie-parser";
 
 const app = express();
 
-// Logger middleware to log HTTP requests in dev mode
 app.use(morgan("dev"));
 
-// Parse JSON bodies for incoming requests
 app.use(express.json());
 
-// Parse URL-encoded bodies for incoming requests
 app.use(express.urlencoded({ extended: false }));
 
-// Enable CORS with credentials and allowed origin
 app.use(
     cors({
         credentials: true,
-        origin: "*", // Allow requests from all origins
+        // origin: "http://localhost:3000",
+        origin: "*",
     })
 );
 
-// Parse cookies from incoming requests
 app.use(cookieParser());
 
-// Session middleware for managing user sessions
 app.use(session({
-    secret: env.SESSION_SECRET, // Session secret from environment variables
+    secret: env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
-        maxAge: 60 * 60 * 1000, // Session expires in 1 hour
+        maxAge: 60 * 60 * 1000,
     },
-    rolling: true, // Extend session lifetime on each request
+    rolling: true,
     store: MongoStore.create({
-        mongoUrl: env.MONGO_CONNECTION_STRING // MongoDB connection string from environment variables
+        mongoUrl: env.MONGO_CONNECTION_STRING
     }),
 }));
 
-// Route handlers for different API endpoints
-app.use("/api/users", userRoutes); // Routes for user-related operations
-app.use("/api/staffs", staffRoutes); // Routes for staff-related operations
-app.use("/api/registers", registerRoutes); // Routes for registration-related operations
-app.use("/api/rosters", getAuthenticatedStaff, rosterRoutes); // Routes for roster-related operations, with staff authentication middleware
-app.use("/api/bookings", bookingRoutes); // Routes for booking-related operations
-app.use("/api/calendars", calendarRoutes); // Routes for calendar-related operations
+app.use("/api/users", userRoutes);
 
-// Middleware for handling 404 errors (Endpoint not found)
+app.use("/api/staffs", staffRoutes);
+
+app.use("/api/registers", registerRoutes);
+
+app.use("/api/rosters", getAuthenticatedStaff, rosterRoutes);
+
+app.use("/api/bookings", bookingRoutes);
+
+app.use("/api/calendars", calendarRoutes);
+
 app.use((req, res, next) => {
-    next(createHttpError(404, "Endpoint not found"));
-});
+    next (createHttpError(404, "Endpoint not found"));
+})
 
-// Error handling middleware for all other errors
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((error: unknown, req: Request, res: Response, next: NextFunction) => {
-    console.error(error); // Log the error to console
-
-    let errorMessage = "An unknown error occurred";
+    console.error(error);
+    let errorMessage = "An unknwon error occured";
     let statusCode = 500;
-
-    // If the error is an HTTP error, extract status and message
     if (isHttpError(error)) {
         statusCode = error.status;
         errorMessage = error.message;
     }
-
-    // Send JSON response with error status and message
     res.status(statusCode).json({ error: errorMessage });
 });
 
-export default app; // Export the configured Express application
+
+
+export default app;
