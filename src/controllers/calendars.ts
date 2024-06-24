@@ -4,31 +4,33 @@ import BookingModel from "../models/booking";
 import mongoose from "mongoose";
 import createHttpError from "http-errors";
 
+// Handler to get month calendars with counts of bookings on specified dates
 export const getMonthCalendars: RequestHandler = async (req, res, next) => {
     try {
         const datesToSearch = req.body.dateArr as string[];
-        // 查询符合条件的数据条目数量
+
+        // Aggregate to count bookings by date
         const aggregationResult = await BookingModel.aggregate([
             {
                 $match: {
-                    date: { $in: datesToSearch } // 使用 $in 操作符匹配 datesToSearch 数组中的日期
+                    date: { $in: datesToSearch } // Match dates in the provided array
                 }
             },
             {
                 $group: {
-                    _id: '$date',  // 按日期分组
-                    count: { $sum: 1 }  // 计算每个日期的文档数量
+                    _id: '$date',  // Group by date
+                    count: { $sum: 1 }  // Count documents for each date
                 }
             }
         ]);
 
-        // 构造包含所有目标日期的结果数组，并将计数初始化为0
+        // Initialize result array with all target dates and count as 0
         const result = datesToSearch.map(date => ({
             date,
             count: 0
         }));
 
-        // 更新结果数组中实际存在的日期的计数
+        // Update count for existing dates in the result array
         aggregationResult.forEach(item => {
             const index = result.findIndex(r => r.date === item._id);
             if (index !== -1) {
@@ -42,6 +44,7 @@ export const getMonthCalendars: RequestHandler = async (req, res, next) => {
     }
 };
 
+// Handler to get all calendar entries
 export const getCalendars: RequestHandler = async (req, res, next) => {
     try {
         const calendars = await CalendarModel.find().exec();
@@ -51,6 +54,7 @@ export const getCalendars: RequestHandler = async (req, res, next) => {
     }
 };
 
+// Handler to get a specific calendar entry by ID
 export const getCalendar: RequestHandler = async (req, res, next) => {
     const calendarId = req.params.calendarId;
 
@@ -71,6 +75,7 @@ export const getCalendar: RequestHandler = async (req, res, next) => {
     }
 };
 
+// Interface for the request body of creating a new calendar entry
 interface CreateCalendarBody {
     date?: string,
     title?: string,
@@ -80,20 +85,17 @@ interface CreateCalendarBody {
     endTime: string,
 }
 
+// Handler to create a new calendar entry
 export const createCalendar: RequestHandler<unknown, unknown, CreateCalendarBody, unknown> = async (req, res, next) => {
-
-    const date = req.body.date;
-    const title = req.body.title;
-    const description = req.body.description;
-    const location = req.body.location;
-    const startTime = req.body.startTime;
-    const endTime = req.body.endTime;
+    const { date, title, description, location, startTime, endTime } = req.body;
 
     try {
-        if ( !date || !title || !description || !location || !startTime || !endTime) {
-            throw createHttpError(400, "Calendar must include these information");
+        // Validate required fields for calendar creation
+        if (!date || !title || !description || !location || !startTime || !endTime) {
+            throw createHttpError(400, "Calendar must include all required information");
         }
 
+        // Create new calendar entry
         const newCalendar = await CalendarModel.create({
             date: date,
             title: title,
@@ -109,10 +111,12 @@ export const createCalendar: RequestHandler<unknown, unknown, CreateCalendarBody
     }
 };
 
+// Interface for the request parameters of updating a calendar entry
 interface UpdateCalendarParams {
     calendarId: string,
 }
 
+// Interface for the request body of updating a calendar entry
 interface UpdateCalendarBody {
     date?: string,
     title?: string,
@@ -122,57 +126,64 @@ interface UpdateCalendarBody {
     endTime: string,
 }
 
+// Handler to update a calendar entry by ID
 export const updateCalendar: RequestHandler<UpdateCalendarParams, unknown, UpdateCalendarBody, unknown> = async (req, res, next) => {
     const calendarId = req.params.calendarId;
-    const newDate = req.body.date;
-    const newTitle = req.body.title;
-    const newDescription = req.body.description;
-    const newLocation = req.body.location;
-    const newStartTime = req.body.startTime;
-    const newEndTime = req.body.endTime;
+    const { date, title, description, location, startTime, endTime } = req.body;
 
     try {
+        // Validate calendar ID
         if (!mongoose.isValidObjectId(calendarId)) {
             throw createHttpError(400, "Invalid calendar id");
         }
-        if ( !newDate || !newTitle || !newDescription || !newLocation || !newStartTime || !newEndTime) {
-            throw createHttpError(400, "Calendar must include these information");
+
+        // Validate required fields for calendar update
+        if (!date || !title || !description || !location || !startTime || !endTime) {
+            throw createHttpError(400, "Calendar must include all required information");
         }
 
+        // Find calendar entry by ID
         const calendar = await CalendarModel.findById(calendarId).exec();
 
         if (!calendar) {
             throw createHttpError(404, "Calendar not found");
         }
 
-        calendar.date = newDate;
-        calendar.title = newTitle;
-        calendar.description = newDescription;
-        calendar.location = newLocation;
-        calendar.startTime = newStartTime;
-        calendar.endTime = newEndTime;
+        // Update calendar fields
+        calendar.date = date;
+        calendar.title = title;
+        calendar.description = description;
+        calendar.location = location;
+        calendar.startTime = startTime;
+        calendar.endTime = endTime;
 
-        const updateCalendar = await calendar.save();
+        // Save updated calendar entry
+        const updatedCalendar = await calendar.save();
 
-        res.status(200).json(updateCalendar);
+        res.status(200).json(updatedCalendar);
     } catch (error) {
         next(error);
     }
 };
 
+// Handler to delete a calendar entry by ID
 export const deleteCalendar: RequestHandler = async (req, res, next) => {
     const calendarId = req.params.calendarId;
 
     try {
+        // Validate calendar ID
         if (!mongoose.isValidObjectId(calendarId)) {
             throw createHttpError(400, "Invalid calendar id");
         }
+
+        // Find calendar entry by ID
         const calendar = await CalendarModel.findById(calendarId).exec();
 
         if (!calendar) {
             throw createHttpError(404, "Calendar not found");
         }
 
+        // Delete calendar entry
         await calendar.deleteOne();
 
         res.sendStatus(204);

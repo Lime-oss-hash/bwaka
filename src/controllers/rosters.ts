@@ -3,8 +3,8 @@ import createHttpError from "http-errors";
 import mongoose from "mongoose";
 import RosterModel from "../models/roster";
 
+// Handler to get all rosters
 export const getRosters: RequestHandler = async (req, res, next) => {
-
     try {
         const rosters = await RosterModel.find().exec();
         res.status(200).json(rosters);
@@ -13,6 +13,7 @@ export const getRosters: RequestHandler = async (req, res, next) => {
     }
 };
 
+// Handler to get a specific roster by ID
 export const getRoster: RequestHandler = async (req, res, next) => {
     const rosterId = req.params.rosterId;
 
@@ -33,38 +34,32 @@ export const getRoster: RequestHandler = async (req, res, next) => {
     }
 };
 
+// Interface for the request body of creating a new roster entry
 interface CreateRosterBody {
-    date?: string, 
-    driverName?: string, 
-    vehiclePlate?: string, 
-    startTime?: string, 
+    date?: string,
+    driverName?: string,
+    vehiclePlate?: string,
+    startTime?: string,
     finishTime?: string,
-    availabilityTime?: string[], 
+    availabilityTime?: string[],
     availabilityStatus?: string[],
 }
 
+// Handler to create a new roster entry
 export const createRoster: RequestHandler<unknown, unknown, CreateRosterBody, unknown> = async (req, res, next) => {
-    const date = req.body.date;
-    const driverName = req.body.driverName;
-    const vehiclePlate = req.body.vehiclePlate;
-    const startTime = req.body.startTime;
-    const finishTime = req.body.finishTime;
-    const availabilityTime = req.body.availabilityTime;
-    const availabilityStatus = req.body.availabilityStatus;
+    const {
+        date, driverName, vehiclePlate, startTime, finishTime, availabilityTime, availabilityStatus
+    } = req.body;
 
     try {
+        // Validate required fields for roster creation
         if (!driverName || !vehiclePlate || !startTime || !finishTime) {
             throw createHttpError(400, "Roster must include these information");
         }
 
+        // Create new roster entry
         const newRoster = await RosterModel.create({
-            date: date,
-            driverName: driverName,
-            vehiclePlate: vehiclePlate,
-            startTime: startTime,
-            finishTime: finishTime,
-            availabilityTime: availabilityTime,
-            availabilityStatus: availabilityStatus,
+            date, driverName, vehiclePlate, startTime, finishTime, availabilityTime, availabilityStatus
         });
 
         res.status(201).json(newRoster);
@@ -73,52 +68,54 @@ export const createRoster: RequestHandler<unknown, unknown, CreateRosterBody, un
     }
 };
 
+// Interface for the request parameters of updating a roster entry
 interface UpdateRosterParams {
     rosterId: string,
 }
 
+// Interface for the request body of updating a roster entry
 interface UpdateRosterBody {
-    date?: string, 
-    driverName?: string, 
-    vehiclePlate?: string, 
-    startTime?: string, 
+    date?: string,
+    driverName?: string,
+    vehiclePlate?: string,
+    startTime?: string,
     finishTime?: string,
-    availabilityTime?: string[], 
+    availabilityTime?: string[],
     availabilityStatus?: string[],
 }
 
+// Handler to update a roster entry by ID
 export const updateRoster: RequestHandler<UpdateRosterParams, unknown, UpdateRosterBody, unknown> = async (req, res, next) => {
     const rosterId = req.params.rosterId;
-    const newDate = req.body.date;
-    const newDriver = req.body.driverName;
-    const newVehicle = req.body.vehiclePlate;
-    const newStartTime = req.body.startTime;
-    const newFinishTime = req.body.finishTime;
-    const newAvailabilityTime = req.body.availabilityTime;
-    const newAvailabilityStatus = req.body.availabilityStatus;
+    const {
+        date, driverName, vehiclePlate, startTime, finishTime, availabilityTime, availabilityStatus
+    } = req.body;
 
     try {
         if (!mongoose.isValidObjectId(rosterId)) {
             throw createHttpError(400, "Invalid roster id");
         }
-        if (!newDate || !newDriver || !newVehicle || !newStartTime || !newFinishTime || !newAvailabilityTime || !newAvailabilityStatus) {
+        if (!date || !driverName || !vehiclePlate || !startTime || !finishTime || !availabilityTime || !availabilityStatus) {
             throw createHttpError(400, "Roster must include these information");
         }
 
+        // Find the roster entry by ID
         const roster = await RosterModel.findById(rosterId).exec();
 
         if (!roster) {
             throw createHttpError(404, "Roster not found");
         }
 
-        roster.date = newDate;
-        roster.driverName = newDriver;
-        roster.vehiclePlate = newVehicle;
-        roster.startTime = newStartTime;
-        roster.finishTime = newFinishTime;
-        roster.availabilityTime = newAvailabilityTime;
-        roster.availabilityStatus = newAvailabilityStatus;
+        // Update the roster entry fields
+        roster.date = date;
+        roster.driverName = driverName;
+        roster.vehiclePlate = vehiclePlate;
+        roster.startTime = startTime;
+        roster.finishTime = finishTime;
+        roster.availabilityTime = availabilityTime;
+        roster.availabilityStatus = availabilityStatus;
 
+        // Save the updated roster entry
         const updateRoster = await roster.save();
 
         res.status(200).json(updateRoster);
@@ -127,6 +124,7 @@ export const updateRoster: RequestHandler<UpdateRosterParams, unknown, UpdateRos
     }
 };
 
+// Handler to delete a roster entry by ID
 export const deleteRoster: RequestHandler = async (req, res, next) => {
     const rosterId = req.params.rosterId;
 
@@ -134,12 +132,14 @@ export const deleteRoster: RequestHandler = async (req, res, next) => {
         if (!mongoose.isValidObjectId(rosterId)) {
             throw createHttpError(400, "Invalid roster id");
         }
+        // Find the roster entry by ID
         const roster = await RosterModel.findById(rosterId).exec();
 
         if (!roster) {
             throw createHttpError(404, "Roster not found");
         }
 
+        // Delete the roster entry
         await roster.deleteOne();
 
         res.sendStatus(204);
