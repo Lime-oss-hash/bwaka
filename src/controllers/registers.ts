@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import env from "../util/validateEnv";
 import nodemailer from "nodemailer";
 import RegisterModel from "../models/register";
+import bcrypt from "bcrypt";
 
 // Nodemailer configuration based on environment variables
 const config = {
@@ -81,16 +82,12 @@ export const createRegister: RequestHandler<unknown, unknown, CreateRegisterBody
     } = req.body;
 
     try {
-        // Validate required fields for register form creation
-        if (!username || !password || !firstName || !lastName || !dob || !email || !address || !town ||
-            !postcode || !phoneNumber || !gender || !ethnicity || !disability || !assistance ||
-            !emergencyName || !emergencyPhone || !emergencyRelationship) {
-            throw createHttpError(400, "Register form must include all required information");
-        }
+        // Hash the password before saving to database if provided
+        const passwordHashed = password ? await bcrypt.hash(password, 10) : undefined;
 
         // Create new register form entry
         const newRegister = await RegisterModel.create({
-            username, password, firstName, lastName, dob, email, address, town,
+            username, password: passwordHashed, firstName, lastName, dob, email, address, town,
             postcode, phoneNumber, altPhoneNumber, gender, ethnicity, disability, disabilityDetails,
             assistance, emergencyName, emergencyPhone, emergencyRelationship,
         });
