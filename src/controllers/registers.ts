@@ -70,66 +70,59 @@ interface CreateRegisterBody {
 }
 
 export const createRegister: RequestHandler<unknown, unknown, CreateRegisterBody, unknown> = async (req, res, next) => {
-    const {
-        username,
-        password,
-        firstName,
-        lastName,
-        dob,
-        email,
-        address,
-        town,
-        postcode,
-        phoneNumber,
-        altPhoneNumber,
-        gender,
-        ethnicity,
-        disability,
-        disabilityDetails,
-        assistance,
-        emergencyName,
-        emergencyPhone,
-        emergencyRelationship
-    } = req.body;
+    const username = req.body.username;
+    const passwordRaw = req.body.password;
+    const firstName = req.body.firstName;
+    const lastName = req.body.lastName;
+    const dob = req.body.dob;
+    const email = req.body.email;
+    const address = req.body.address;
+    const town = req.body.town;
+    const postcode = req.body.postcode;
+    const phoneNumber = req.body.phoneNumber;
+    const altPhoneNumber = req.body.altPhoneNumber;
+    const gender = req.body.gender;
+    const ethnicity = req.body.ethnicity;
+    const disability = req.body.disability
+    const disabilityDetails = req.body.disabilityDetails
+    const assistance = req.body.assistance
+    const emergencyName = req.body.emergencyName
+    const emergencyPhone = req.body.emergencyPhone
+    const emergencyRelationship = req.body.emergencyRelationship
 
     try {
-        if (!username || !password || !firstName || !lastName || !dob || !email || !address || !town || !postcode || !phoneNumber || !gender || !ethnicity
+        if (!username || !passwordRaw || !firstName || !lastName || !dob || !email || !address || !town || !postcode || !phoneNumber || !gender || !ethnicity
             || !disability || !assistance || !emergencyName || !emergencyPhone || !emergencyRelationship) {
-            throw createHttpError(400, "Register form needs to be filled by these information");
+            throw createHttpError(400, "Register form needs to be filled by these information")
         }
 
-        const passwordHashed = await bcrypt.hash(password, 10);
+        const passwordHashed = await bcrypt.hash(passwordRaw, 10);
 
         const newRegister = await RegisterModel.create({
-            username,
-            password: passwordHashed,
-            firstName,
-            lastName,
-            dob,
-            email,
-            address,
-            town,
-            postcode,
-            phoneNumber,
-            altPhoneNumber,
-            gender,
-            ethnicity,
-            disability,
-            disabilityDetails,
-            assistance,
-            emergencyName,
-            emergencyPhone,
-            emergencyRelationship,
+            username: username,
+            password: passwordRaw,
+            firstName: firstName,
+            lastName: lastName,
+            dob: dob,
+            email: email,
+            address: address,
+            town: town,
+            postcode: postcode,
+            phoneNumber: phoneNumber,
+            altPhoneNumber: altPhoneNumber,
+            gender: gender,
+            ethnicity: ethnicity,
+            disability: disability,
+            disabilityDetails: disabilityDetails,
+            assistance: assistance,
+            emergencyName: emergencyName,
+            emergencyPhone: emergencyPhone,
+            emergencyRelationship: emergencyRelationship,
         });
 
         res.status(201).json(newRegister);
     } catch (error) {
-        console.error("Error creating register:", error);
-        if (error instanceof mongoose.Error.ValidationError) {
-            next(createHttpError(400, error.message));
-        } else {
-            next(error);
-        }
+        next(error);
     }
 };
 
