@@ -1,8 +1,8 @@
 import { RequestHandler } from "express";
 import createHttpError from "http-errors";
 import StaffModel from "../models/staff";
-import bcrypt from "bcrypt";
 
+// Get the authenticated staff details
 export const getAuthenticatedStaff: RequestHandler = async (req, res, next) => {
     const authenticatedStaffId = req.session.staffId;
     try {
@@ -13,19 +13,20 @@ export const getAuthenticatedStaff: RequestHandler = async (req, res, next) => {
     }
 };
 
+// Interface for staff sign-up request body
 interface StaffSignUpBody {
     email?: string,
     password?: string,
     role?: string,
 }
 
+// Sign up a new staff member
 export const StaffSignUp: RequestHandler<unknown, unknown, StaffSignUpBody, unknown> = async (req, res, next) => {
-    const email = req.body.email;
-    const passwordRaw = req.body.password;
+    const { email, password: passwordRaw } = req.body;
     const role = "staff";
 
     try {
-        if ( !email || !passwordRaw) {
+        if (!email || !passwordRaw) {
             throw createHttpError(400, "Parameters missing");
         }
 
@@ -33,18 +34,18 @@ export const StaffSignUp: RequestHandler<unknown, unknown, StaffSignUpBody, unkn
             throw createHttpError(409, "Staff email must be registered with Waka Eastern Bay email address");
         }
 
-        const existingEmail = await StaffModel.findOne({ email: email }).exec();
-
+        const existingEmail = await StaffModel.findOne({ email }).exec();
         if (existingEmail) {
             throw createHttpError(409, "A staff with this email address already exists. Please log in instead");
         }
 
-        const passwordHashed = await bcrypt.hash(passwordRaw, 10);
+        // Store the password in plain text
+        const passwordPlainText = passwordRaw;
 
         const newStaff = await StaffModel.create({
-            email: email,
-            password: passwordHashed,
-            role: role,
+            email,
+            password: passwordPlainText,
+            role,
         });
 
         req.session.staffId = newStaff._id;
@@ -55,27 +56,28 @@ export const StaffSignUp: RequestHandler<unknown, unknown, StaffSignUpBody, unkn
     }
 };
 
+// Interface for staff login request body
 interface StaffLoginBody {
     email?: string,
     password?: string,
 }
 
+// Log in a staff member
 export const StaffLogin: RequestHandler<unknown, unknown, StaffLoginBody, unknown> = async (req, res, next) => {
-    const email = req.body.email;
-    const password = req.body.password;
+    const { email, password } = req.body;
     
     try {
         if (!email || !password) {
             throw createHttpError(400, "Parameters missing");
         }
 
-        const staff = await StaffModel.findOne({ email: email }).select("+password +email").exec();
-
+        const staff = await StaffModel.findOne({ email }).select("+password +email").exec();
         if (!staff) {
             throw createHttpError(401, "Email address is incorrect");
         }
 
-        const passwordMatch = await bcrypt.compare(password, staff.password);
+        // Compare the provided password with the stored plain text password
+        const passwordMatch = (password === staff.password);
 
         if (!passwordMatch) {
             throw createHttpError(401, "Password is incorrect");
@@ -83,12 +85,12 @@ export const StaffLogin: RequestHandler<unknown, unknown, StaffLoginBody, unknow
 
         req.session.staffId = staff._id;
         res.status(201).json(staff);
-
     } catch (error) {
         next(error);
     }
 };
 
+// Log out a staff member
 export const StaffLogout: RequestHandler = (req, res, next) => {
     req.session.destroy(error => {
         if (error) {
