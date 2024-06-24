@@ -10,7 +10,7 @@ import bcrypt from "bcrypt";
 const config = {
     host: env.SMTP_SERVER_ADDRESS,
     port: env.SMTP_PORT,
-    secure: false,
+    secure: env.SMTP_PORT === 465, // true for 465, false for other ports
     auth: {
         user: env.SMTP_LOGIN,
         pass: env.SMTP_PASSWORD,
@@ -25,7 +25,7 @@ export const getRegisters: RequestHandler = async (req, res, next) => {
         const registers = await RegisterModel.find().exec();
         res.status(200).json(registers);
     } catch (error) {
-        next(error);
+        next(createHttpError(500, error.message));
     }
 };
 
@@ -35,7 +35,7 @@ export const getRegister: RequestHandler = async (req, res, next) => {
 
     try {
         if (!mongoose.isValidObjectId(registerId)) {
-            throw createHttpError(400, "Invalid register id");
+            throw createHttpError(400, "Invalid register ID");
         }
 
         const register = await RegisterModel.findById(registerId).exec();
@@ -46,46 +46,78 @@ export const getRegister: RequestHandler = async (req, res, next) => {
 
         res.status(200).json(register);
     } catch (error) {
-        next(error);
+        next(createHttpError(500, error.message));
     }
 };
 
 // Interface for the request body of creating a new register form
 interface CreateRegisterBody {
-    username?: string,
-    password?: string,
-    firstName?: string,
-    lastName?: string,
-    dob?: string,
-    email?: string,
-    address?: string,
-    town?: string,
-    postcode?: string,
-    phoneNumber?: string,
-    altPhoneNumber?: string,
-    gender?: string,
-    ethnicity?: string,
-    disability?: string,
-    disabilityDetails?: string,
-    assistance?: string,
-    emergencyName?: string,
-    emergencyPhone?: string,
-    emergencyRelationship?: string,
+    username?: string;
+    password?: string;
+    firstName?: string;
+    lastName?: string;
+    dob?: string;
+    email?: string;
+    address?: string;
+    town?: string;
+    postcode?: string;
+    phoneNumber?: string;
+    altPhoneNumber?: string;
+    gender?: string;
+    ethnicity?: string;
+    disability?: string;
+    disabilityDetails?: string;
+    assistance?: string;
+    emergencyName?: string;
+    emergencyPhone?: string;
+    emergencyRelationship?: string;
 }
 
 // Handler to create a new register form
 export const createRegister: RequestHandler<unknown, unknown, CreateRegisterBody, unknown> = async (req, res, next) => {
     const {
-        username, password, firstName, lastName, dob, email, address, town, postcode,
-        phoneNumber, altPhoneNumber, gender, ethnicity, disability, disabilityDetails,
-        assistance, emergencyName, emergencyPhone, emergencyRelationship
+        username,
+        password,
+        firstName,
+        lastName,
+        dob,
+        email,
+        address,
+        town,
+        postcode,
+        phoneNumber,
+        altPhoneNumber,
+        gender,
+        ethnicity,
+        disability,
+        disabilityDetails,
+        assistance,
+        emergencyName,
+        emergencyPhone,
+        emergencyRelationship,
     } = req.body;
 
     try {
         // Validate required fields for register form creation
-        if (!username || !password || !firstName || !lastName || !dob || !email || !address || !town ||
-            !postcode || !phoneNumber || !gender || !ethnicity || !disability || !assistance ||
-            !emergencyName || !emergencyPhone || !emergencyRelationship) {
+        if (
+            !username ||
+            !password ||
+            !firstName ||
+            !lastName ||
+            !dob ||
+            !email ||
+            !address ||
+            !town ||
+            !postcode ||
+            !phoneNumber ||
+            !gender ||
+            !ethnicity ||
+            !disability ||
+            !assistance ||
+            !emergencyName ||
+            !emergencyPhone ||
+            !emergencyRelationship
+        ) {
             throw createHttpError(400, "Register form must include all required information");
         }
 
@@ -94,14 +126,30 @@ export const createRegister: RequestHandler<unknown, unknown, CreateRegisterBody
 
         // Create new register form entry
         const newRegister = await RegisterModel.create({
-            username, password: passwordHashed, firstName, lastName, dob, email, address, town,
-            postcode, phoneNumber, altPhoneNumber, gender, ethnicity, disability, disabilityDetails,
-            assistance, emergencyName, emergencyPhone, emergencyRelationship,
+            username,
+            password: passwordHashed,
+            firstName,
+            lastName,
+            dob,
+            email,
+            address,
+            town,
+            postcode,
+            phoneNumber,
+            altPhoneNumber,
+            gender,
+            ethnicity,
+            disability,
+            disabilityDetails,
+            assistance,
+            emergencyName,
+            emergencyPhone,
+            emergencyRelationship,
         });
 
         res.status(201).json(newRegister);
     } catch (error) {
-        next(error);
+        next(createHttpError(500, error.message));
     }
 };
 
@@ -111,7 +159,7 @@ export const deleteRegisterWithEmail: RequestHandler = async (req, res, next) =>
 
     try {
         if (!mongoose.isValidObjectId(registerId)) {
-            throw createHttpError(400, "Invalid register id");
+            throw createHttpError(400, "Invalid register ID");
         }
 
         const register = await RegisterModel.findById(registerId).exec();
@@ -128,13 +176,13 @@ export const deleteRegisterWithEmail: RequestHandler = async (req, res, next) =>
             html: `<p>Dear ${register.firstName} ${register.lastName},</p>
             <p>We are sorry to inform you that your registration application has been denied.</p>
             <p>We have found that you do not meet our requirements to receive our services.</p>
-            <p>If you wish to speak further on this, you can contact us via our website at wakaeasterbay.org.nz</p>
-            <p>Ngā mihi/Kind regards.</p>
+            <p>If you wish to speak further on this, you can contact us via our website at wakaeasternbay.org.nz</p>
+            <p>Ngā mihi/Kind regards,</p>
             <p>Reneé Lubbe</p>
             <p>Project Manager</p>
             <p>Mobile: 027 4077526</p>
             <p>Facebook: wakaeasternbay</p>
-            <p>https://wakaeasternbay.org.nz</p>`,
+            <p><a href="https://wakaeasternbay.org.nz">wakaeasternbay.org.nz</a></p>`,
         });
 
         console.log("Message sent: %s", data.response);
@@ -144,7 +192,7 @@ export const deleteRegisterWithEmail: RequestHandler = async (req, res, next) =>
 
         res.sendStatus(204);
     } catch (error) {
-        next(error);
+        next(createHttpError(500, error.message));
     }
 };
 
@@ -154,7 +202,7 @@ export const deleteRegisterWithoutEmail: RequestHandler = async (req, res, next)
 
     try {
         if (!mongoose.isValidObjectId(registerId)) {
-            throw createHttpError(400, "Invalid register id");
+            throw createHttpError(400, "Invalid register ID");
         }
 
         const register = await RegisterModel.findById(registerId).exec();
@@ -168,6 +216,6 @@ export const deleteRegisterWithoutEmail: RequestHandler = async (req, res, next)
 
         res.sendStatus(204);
     } catch (error) {
-        next(error);
+        next(createHttpError(500, error.message));
     }
 };
