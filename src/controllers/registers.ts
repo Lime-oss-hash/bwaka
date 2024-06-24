@@ -82,8 +82,15 @@ export const createRegister: RequestHandler<unknown, unknown, CreateRegisterBody
     } = req.body;
 
     try {
-        // Hash the password before saving to database if provided
-        const passwordHashed = password ? await bcrypt.hash(password, 10) : undefined;
+        // Validate required fields for register form creation
+        if (!username || !password || !firstName || !lastName || !dob || !email || !address || !town ||
+            !postcode || !phoneNumber || !gender || !ethnicity || !disability || !assistance ||
+            !emergencyName || !emergencyPhone || !emergencyRelationship) {
+            throw createHttpError(400, "Register form must include all required information");
+        }
+
+        // Hash the password before saving to database
+        const passwordHashed = await bcrypt.hash(password, 10);
 
         // Create new register form entry
         const newRegister = await RegisterModel.create({
