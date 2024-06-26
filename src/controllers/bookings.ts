@@ -8,7 +8,6 @@ import env from "../util/validateEnv";
 import nodemailer from "nodemailer";
 import { signJWT } from "../util/jwt.utils";
 
-// Configuration for SMTP server
 const config = {
     host: env.SMTP_SERVER_ADDRESS,
     port: env.SMTP_PORT,
@@ -19,17 +18,14 @@ const config = {
     },
 };
 
-// Create a nodemailer transporter instance
 const transporter = nodemailer.createTransport(config);
 
-// Handler to get bookings for authenticated user
 export const getBookings: RequestHandler = async (req, res, next) => {
     const authenticatedUserId = req.session.userId;
 
     try {
         assertIsDefined(authenticatedUserId);
 
-        // Find bookings for the authenticated user
         const bookings = await BookingModel.find({ userId: authenticatedUserId }).exec();
         res.status(200).json(bookings);
     } catch (error) {
@@ -37,16 +33,18 @@ export const getBookings: RequestHandler = async (req, res, next) => {
     }
 };
 
-// Handler to get all bookings with optional search parameters
 export const getAllBookings: RequestHandler = async (req, res, next) => {
     try {
-        // Retrieve query parameters
+        // const bookings = await BookingModel.find().exec();
+        // res.status(200).json(bookings);
+        // 获取查询参数
+        // 获取查询参数
         const { name, limit, page, date } = req.body;
 
-        // Build search criteria
+        // 构建搜索条件
         let searchCriteria: any = {};
         if (name) {
-            searchCriteria.firstName = { $regex: new RegExp(name as string, 'i') };  // Use regex for case-insensitive search
+            searchCriteria.firstName = { $regex: new RegExp(name as string, 'i') };  // 使用正则表达式实现模糊搜索
         }
 
         if (date) {
@@ -54,21 +52,21 @@ export const getAllBookings: RequestHandler = async (req, res, next) => {
             searchCriteria.date = targetDate;
         }
 
-        // Calculate pagination parameters
+        // 计算分页参数
         const limitNum = parseInt(limit as string, 10);
         const pageNum = parseInt(page as string, 10);
         const skip = (pageNum - 1) * limitNum;
 
-        // Execute the query with pagination
+        // 执行查询
         const bookings = await BookingModel.find(searchCriteria)
           .skip(skip)
           .limit(limitNum)
           .exec();
 
-        // Get total count of matching documents
+        // 获取总数
         const total = await BookingModel.countDocuments(searchCriteria).exec();
 
-        // Return results with pagination metadata
+        // 返回结果
         res.status(200).json({
             total,
             page: pageNum,
@@ -80,7 +78,6 @@ export const getAllBookings: RequestHandler = async (req, res, next) => {
     }
 };
 
-// Handler to get a specific booking by ID for authenticated user
 export const getBooking: RequestHandler = async (req, res, next) => {
     const bookingId = req.params.bookingId;
     const authenticatedUserId = req.session.userId;
@@ -88,19 +85,16 @@ export const getBooking: RequestHandler = async (req, res, next) => {
     try {
         assertIsDefined(authenticatedUserId);
 
-        // Validate booking ID
         if (!mongoose.isValidObjectId(bookingId)) {
             throw createHttpError(400, "Invalid booking id");
         }
 
-        // Find booking by ID
         const booking = await BookingModel.findById(bookingId).exec();
 
         if (!booking) {
             throw createHttpError(404, "Booking not found");
         }
 
-        // Ensure the authenticated user owns the booking
         if (!booking.userId.equals(authenticatedUserId)) {
             throw createHttpError(401, "You cannot access this booking");
         }
@@ -111,7 +105,6 @@ export const getBooking: RequestHandler = async (req, res, next) => {
     }
 };
 
-// Interface for the request body of creating a booking
 interface CreateBookingBody {
     firstName?: string,
     lastName?: string,
@@ -129,15 +122,26 @@ interface CreateBookingBody {
     additionalNotes?: string,
 }
 
-// Handler to create a new booking
 export const createBooking: RequestHandler<unknown, unknown, CreateBookingBody, unknown> = async (req, res, next) => {
-    const { firstName, lastName, phoneNumber, email, pickup, destination, wheelchair, passenger, purpose, trip, date, pickupTime, dropoffTime, additionalNotes } = req.body;
+    const firstName = req.body.firstName;
+    const lastName = req.body.lastName;
+    const phoneNumber = req.body.phoneNumber;
+    const email = req.body.email;
+    const pickup = req.body.pickup;
+    const destination = req.body.destination;
+    const wheelchair = req.body.wheelchair;
+    const passenger = req.body.passenger;
+    const purpose = req.body.purpose;
+    const trip = req.body.trip;
+    const date = req.body.date;
+    const pickupTime = req.body.pickupTime;
+    const dropoffTime = req.body.dropoffTime;
+    const additionalNotes = req.body.additionalNotes;
     const authenticatedUserId = req.session.userId;
 
     try {
         assertIsDefined(authenticatedUserId);
 
-        // Validate required fields for booking creation
         if (!firstName || !lastName) {
             throw createHttpError(400, "Booking must have a passenger's name");
         } else if (!phoneNumber) {
@@ -164,7 +168,6 @@ export const createBooking: RequestHandler<unknown, unknown, CreateBookingBody, 
             throw createHttpError(400, "Booking must have a drop-off time");
         }
 
-        // Create a new booking entry
         const newBooking = await BookingModel.create({
             userId: authenticatedUserId,
             firstName: firstName,
@@ -183,15 +186,13 @@ export const createBooking: RequestHandler<unknown, unknown, CreateBookingBody, 
             additionalNotes: additionalNotes,
         });
 
-        // Generate access token for the new booking
         const accessToken = signJWT({ email: newBooking }, "24h");
 
-        // Send confirmation email to user
         const data = await transporter.sendMail({
-            from: "xinbai24@student.wintec.ac.nz",
-            to: "xinbai24@student.wintec.ac.nz",
-            subject: "Your Booking Request",
-            html: `<p>Dear ${firstName}, ${lastName}</p>
+            "from": "miskan22@student.wintec.ac.nz",
+            "to": "miskan22@student.wintec.ac.nz",
+            "subject": "Your Booking Request",
+            "html": `<p>Dear ${firstName}, ${lastName}</p>
             <p>We would love to inform you that your booking request with 
             Waka Eastern Bay Community Transport has been requested.</p>
             <p>NOTE: This is confirmation email.</p>
@@ -202,23 +203,19 @@ export const createBooking: RequestHandler<unknown, unknown, CreateBookingBody, 
             <p>Waka Eastern Bay Community Transport</p>`
         });
 
-        // Send notification email to admin/staff
         const mail = await transporter.sendMail({
-            from: "xinbai24@student.wintec.ac.nz",
-            to: "xinbai24@student.wintec.ac.nz",
-            subject: "User's Booking Request",
-            html: `<p>${firstName}, ${lastName} has made a booking request with 
+            "from": "miskan22@student.wintec.ac.nz",
+            "to": "miskan22@student.wintec.ac.nz",
+            "subject": "User's Booking Request",
+            "html": `<p>${firstName}, ${lastName} has been made a booking request with 
             Waka Eastern Bay Community Transport.</p>
             <p>NOTE: This is confirmation email.</p>
             <p><a href="https://wakaeasternbay.org.nz">https://wakaeasternbay.org.nz</a></p>
             <p>Waka Eastern Bay Community Transport</p>`
         });
 
-        // Log email sending status
         console.log("Message sent: %s", data.response);
         console.log("Message sent: %s", mail.response);
-
-        // Respond with access token
         res.status(201).json(accessToken);
 
     } catch (error) {
@@ -226,7 +223,6 @@ export const createBooking: RequestHandler<unknown, unknown, CreateBookingBody, 
     }
 };
 
-// Handler to delete a booking owned by the authenticated user
 export const deleteUserBooking: RequestHandler = async (req, res, next) => {
     const bookingId = req.params.bookingId;
     const authenticatedUserId = req.session.userId;
@@ -234,24 +230,20 @@ export const deleteUserBooking: RequestHandler = async (req, res, next) => {
     try {
         assertIsDefined(authenticatedUserId);
 
-        // Validate booking ID
         if (!mongoose.isValidObjectId(bookingId)) {
             throw createHttpError(400, "Invalid booking id");
         }
 
-        // Find booking by ID
         const booking = await BookingModel.findById(bookingId).exec();
 
         if (!booking) {
             throw createHttpError(404, "Booking not found");
         }
 
-        // Ensure the authenticated user owns the booking
         if (!booking.userId.equals(authenticatedUserId)) {
             throw createHttpError(401, "You cannot access this booking");
         }
 
-        // Delete the booking
         await booking.deleteOne();
 
         res.sendStatus(204);
@@ -260,24 +252,19 @@ export const deleteUserBooking: RequestHandler = async (req, res, next) => {
     }
 };
 
-// Handler to delete a booking by ID (staff/admin)
 export const deleteStaffBooking: RequestHandler = async (req, res, next) => {
     const bookingId = req.params.bookingId;
 
     try {
-        // Validate booking ID
         if (!mongoose.isValidObjectId(bookingId)) {
             throw createHttpError(400, "Invalid booking Id");
         }
 
-        // Find booking by ID
         const booking = await BookingModel.findById(bookingId).exec();
 
         if (!booking) {
             throw createHttpError(404, "Booking not found");
         }
-
-        // Delete the booking
         await booking.deleteOne();
 
         res.sendStatus(204);
@@ -286,7 +273,6 @@ export const deleteStaffBooking: RequestHandler = async (req, res, next) => {
     }
 };
 
-// Handler to suggest bookings for a specific date
 export const suggestBooking: RequestHandler = async (req, res, next) => {
     const date = req.query.date;
 
@@ -295,14 +281,13 @@ export const suggestBooking: RequestHandler = async (req, res, next) => {
         if (date) {
             searchCriteria.date = date;
         }
-        
-        // Query the database for matching roster entries
+        // 查询数据库中符合条件的数据
         const bookings = await RosterModel.find(searchCriteria).exec();
 
-        // Respond with the query results
+        // 返回查询结果
         res.status(200).json(bookings);
 
-    } catch (error) {
+    }catch (error) {
         next(error);
     }
 

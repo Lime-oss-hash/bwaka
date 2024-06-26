@@ -12,7 +12,7 @@ router.post("/userlogin", UserController.UserLogin);
 
 router.post("/userlogout", UserController.UserLogout);
 
-router.get("/userresetpassword/:userId", UserController.ChangePassword);
+router.post("/userresetpassword/:userId", UserController.ChangePassword);
 
 router.patch("/userresetpassword/:userId/accessToken", UserController.ChangePassword);
 

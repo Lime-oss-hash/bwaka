@@ -15,4 +15,5 @@ export default cleanEnv(process.env, {
     SMTP_PASSWORD: str(),
     CREDENTIALS: str(),
     CALENDAR_ID: str(),
+    FRONTENDURL: str()
 });
