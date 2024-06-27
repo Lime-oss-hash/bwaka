@@ -112,7 +112,7 @@ export const UserSignUp: RequestHandler<unknown, unknown, UserSignUpBody, unknow
 
         const accessToken = signJWT({ email: newUser.email }, "24h");
 
-        const link = `${config.FRONTENDURL}/resetpassword/${newUser._id}`;
+        const link = `https://reactbuildwakawebsite.netlify.app/resetpassword/${newUser._id}`;
 
         const data = await transporter.sendMail({
             "from": "sambai@student.wintec.ac.nz",
