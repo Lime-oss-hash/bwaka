@@ -115,7 +115,7 @@ export const UserSignUp: RequestHandler<unknown, unknown, UserSignUpBody, unknow
         const link = `${config.FRONTENDURL}/resetpassword/${newUser._id}`;
 
         const data = await transporter.sendMail({
-            "from": "miskan22@student.wintec.ac.nz",
+            "from": "sambai@student.wintec.ac.nz",
             "to": newUser.email,
             "subject": "Your Application has been approved",
             "html": `<p>Dear ${firstName}, ${lastName}<p>
@@ -124,8 +124,8 @@ export const UserSignUp: RequestHandler<unknown, unknown, UserSignUpBody, unknow
             <p>This link will only be valid for 24 hours from the time you received this email.</p>
             <p>Please click the "forgot password" again if the link has expired.</p>
             <p>Ngā mihi/Kind regards.</p>
-            <p>Reneé Lubbe</p>
-            <p>Project Manager</p>
+            <p>Sam Bai</p>
+            <p>Staff</p>
             <p><a href="https://wakaeasternbay.org.nz">https://wakaeasternbay.org.nz</a></p>
             <p>Waka Eastern Bay Community Transport</p>`
         });
